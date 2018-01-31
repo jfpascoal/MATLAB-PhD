@@ -1,9 +1,9 @@
-% increase x of fStd to 2.5 or 2.6 and change last part of tresh detection 
+% increase x of fStd to 2.5 or 2.6 and change last part of tresh detection
 % for multithresh
 clear all
 close all
 
-imgpath='C:\Users\Jorge\Desktop\chnl_2_row_5_col_2.tiff';
+imgpath='C:\Users\Jorge\Desktop\chnl_3_row_8_col_2.tiff';
 
 img=imread(imgpath);
 figure, imshow(img.*16)
@@ -31,7 +31,7 @@ if isempty(findpeaks(fStd)) || max(max(uint16(img.^2.5)))<65355
         maxX=1;
     end
 else
-    x=(1.5:0.02:2.5);
+    x=(1.5:0.02:2.6);
     fStd=zeros(size(x));
     for i=1:numel(x)
         expImg=double(uint16(img.^x(i)));
@@ -158,124 +158,139 @@ end
 
 if maxX>1
     
-    % new code
+    %     % new code
+    %     tempimg=double(uint16(img.^maxX));
+    %     %figure, imshow(uint16(tempimg));
+    %
+    %     % calculate density estimation
+    %     % convert tempimg values >0 and <30001 to vector and sort
+    %     fulldata=sort(reshape(tempimg(tempimg>0 & tempimg< 30001),[],1));
+    %     dataMax=max(fulldata);
+    %     uniqueData=unique(fulldata);
+    %     dataSize=numel(uniqueData);
+    %
+    %     % set x
+    %     prex=1:2^12-1;
+    %     x=unique(double(uint16(prex.^maxX)));
+    %     x=x(1:find(x==dataMax));
+    %     xSize=numel(x);
+    %
+    %
+    %     % density estimation
+    %     dX=zeros(xSize); % pre-allocate
+    %     for j=1:xSize
+    %         for i=1:j
+    %             dX(i,j)=x(j)-x(i);
+    %         end
+    %     end
+    %     dX=sort(unique(dX(dX<=10)));
+    %     dXSize=numel(dX);
+    %
+    %     kernTable=zeros(xSize,1); % pre-allocate
+    %
+    %     for i=1:dXSize
+    %         kernTable(i)=(1/sqrt(2^pi)*exp(-1/2*dX(i)^2))/numel(fulldata);
+    %     end
+    %
+    %
+    %
+    %     freqTable=zeros(1,xSize); % pre-allocate
+    %     for i=1:dataSize
+    %         freqTable(i)=numel(fulldata(fulldata==x(i)));
+    %     end
+    %
+    %     densEst=zeros(size(x)); % pre-allocate output
+    %
+    %     for j=1:xSize
+    %         xSum=0;
+    %         zerocheck=0;
+    %         for i=1:xSize
+    %             difXData=abs(x(i)-x(j));
+    %             if difXData<=10
+    %                 xSum=xSum+freqTable(i)*kernTable(dX==difXData);
+    %                 if difXData==0
+    %                     zerocheck=1;
+    %                 end
+    %             elseif zerocheck==1
+    %                 break
+    %             end
+    %         end
+    %         densEst(j)=xSum;
+    %     end
+    %
+    %     %figure, plot(x,densEst)
+    %
+    %     % differentiate distribution
+    %     dFD=zeros(xSize,1); % pre-allocate
+    %     dFD(1)=0;
+    %     for i=2:xSize
+    %         dFD(i)=(densEst(i)-densEst(i-1))/(x(i)-x(i-1));
+    %     end
+    %
+    %     smdFD=smoother(smoother(dFD,5),3);
+    %     %figure, plot(x,smdFD)
+    %
+    %     % find areas with small variations, i.e. dFD close to 0, after the max.
+    %     flatFinder=smdFD<2e-7 & smdFD>-2e-7;
+    %     flatInd=find(flatFinder);
+    %     smdFDMax=find(smdFD==max(smdFD)); % find index of maximum
+    %     % Trim flatInd from values under smdFDMax
+    %     flatInd=flatInd(find(flatInd>smdFDMax):end);
+    %
+    %     if ~isempty(flatInd) % when the peak is at the end
+    %         for i=1:numel(flatInd)
+    %             if flatInd(i)<=max(flatInd)-9
+    %                 indCheck=flatInd(i);
+    %                 if sum(flatFinder(indCheck:indCheck+9))/10>=0.9
+    %                     minthresh=x(indCheck);
+    %                     break
+    %                 end
+    %             else % if couldn't find a 10-span area, look for a 5-span.
+    %                 for j=1:numel(flatInd)
+    %                     if flatInd(j)<=max(flatInd)-4
+    %                         indCheck=flatInd(j);
+    %                         if sum(flatFinder(indCheck:indCheck+4))...
+    %                                 /5>=0.8
+    %                             minthresh=x(indCheck);
+    %                             break
+    %                         end
+    %                     else
+    %                         minthresh=65355;
+    %                     end
+    %                 end
+    %             end
+    %         end
+    
     tempimg=double(uint16(img.^maxX));
-    %figure, imshow(uint16(tempimg));
+    minthresh=double(multithresh(tempimg(tempimg>0)));
+    minthresh=minthresh^(1/maxX);
+    minthresh=round(minthresh);
     
-    % calculate density estimation
-    % convert tempimg values >0 and <30001 to vector and sort
-    fulldata=sort(reshape(tempimg(tempimg>0 & tempimg< 30001),[],1));
-    dataMax=max(fulldata);
-    uniqueData=unique(fulldata);
-    dataSize=numel(uniqueData);
-    
-    % set x
-    prex=1:2^12-1;
-    x=unique(double(uint16(prex.^maxX)));
-    x=x(1:find(x==dataMax));
-    xSize=numel(x);
-    
-    
-    % density estimation
-    dX=zeros(xSize); % pre-allocate
-    for j=1:xSize
-        for i=1:j
-            dX(i,j)=x(j)-x(i);
-        end
-    end
-    dX=sort(unique(dX(dX<=10)));
-    dXSize=numel(dX);
-    
-    kernTable=zeros(xSize,1); % pre-allocate
-    
-    for i=1:dXSize
-        kernTable(i)=(1/sqrt(2^pi)*exp(-1/2*dX(i)^2))/numel(fulldata);
-    end
-    
-    
-    
-    freqTable=zeros(1,xSize); % pre-allocate
-    for i=1:dataSize
-        freqTable(i)=numel(fulldata(fulldata==x(i)));
-    end
-    
-    densEst=zeros(size(x)); % pre-allocate output
-    
-    for j=1:xSize
-        xSum=0;
-        zerocheck=0;
-        for i=1:xSize
-            difXData=abs(x(i)-x(j));
-            if difXData<=10
-                xSum=xSum+freqTable(i)*kernTable(dX==difXData);
-                if difXData==0
-                    zerocheck=1;
-                end
-            elseif zerocheck==1
-                break
-            end
-        end
-        densEst(j)=xSum;
-    end
-    
-    %figure, plot(x,densEst)
-    
-    % differentiate distribution
-    dFD=zeros(xSize,1); % pre-allocate
-    dFD(1)=0;
-    for i=2:xSize
-        dFD(i)=(densEst(i)-densEst(i-1))/(x(i)-x(i-1));
-    end
-    
-    smdFD=smoother(smoother(dFD,5),3);
-    %figure, plot(x,smdFD)
-    
-    % find areas with small variations, i.e. dFD close to 0, after the max.
-    flatFinder=smdFD<2e-7 & smdFD>-2e-7;
-    flatInd=find(flatFinder);
-    smdFDMax=find(smdFD==max(smdFD)); % find index of maximum
-    % Trim flatInd from values under smdFDMax
-    flatInd=flatInd(find(flatInd>smdFDMax):end);
-    
-    if ~isempty(flatInd) % when the peak is at the end
-        for i=1:numel(flatInd)
-            if flatInd(i)<=max(flatInd)-9
-                indCheck=flatInd(i);
-                if sum(flatFinder(indCheck:indCheck+9))/10>=0.9
-                    minthresh=x(indCheck);
-                    break
-                end
-            else % if couldn't find a 10-span area, look for a 5-span.
-                for j=1:numel(flatInd)
-                    if flatInd(j)<=max(flatInd)-4
-                        indCheck=flatInd(j);
-                        if sum(flatFinder(indCheck:indCheck+4))...
-                                /5>=0.8
-                            minthresh=x(indCheck);
-                            break
-                        end
-                    else
-                        minthresh=65355;
-                    end
-                end
-            end
-        end
-    else
-        minthresh=65355;
-    end
-    
-    img=uint16(img);
-    minthresh1=minthresh^(1/maxX);
-    minthresh2=double(multithresh(img(img>0)));
-    maximg=uint16(double(img).^maxX);
-    minthresh3=double(multithresh(maximg(maximg>0)));
-    minthresh3=minthresh3^(1/maxX);
-    minthresh1=round(minthresh1);
-    minthresh3=round(minthresh3);
-    disp([minthresh1,minthresh2,minthresh3])
-    imask1=imquantize(img,minthresh1);
-    imask3=imquantize(img,minthresh3);
-    figure,imshow(maximg)
-    figure,imshow(imask1,[])
-    figure,imshow(imask3,[])
 end
+
+img=uint16(img);
+maskim=imquantize(img, minthresh);
+maskim=maskim-1;
+figure, imshow(maskim, [])
+
+%maskim=logical(maskim);
+maskim=bwareaopen(maskim,5);
+maskim=bwmorph(bwmorph(maskim,'spur'),'spur');
+%maskim=bwmorph(imthinbreak(maskim),'spur');
+maskim=bwareaopen(maskim,5);
+figure, imshow(maskim, [])
+
+%     img=uint16(img);
+%     minthresh1=minthresh^(1/maxX);
+%     minthresh2=double(multithresh(img(img>0)));
+%     maximg=uint16(double(img).^maxX);
+%     minthresh3=double(multithresh(maximg(maximg>0)));
+%     minthresh3=minthresh3^(1/maxX);
+%     minthresh1=round(minthresh1);
+%     minthresh3=round(minthresh3);
+%     disp([minthresh1,minthresh2,minthresh3])
+%     imask1=imquantize(img,minthresh1);
+%     imask3=imquantize(img,minthresh3);
+%     figure,imshow(maximg)
+%     figure,imshow(imask1,[])
+%     figure,imshow(imask3,[])
